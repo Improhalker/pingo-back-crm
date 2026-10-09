@@ -27,3 +27,7 @@ A fonte única é o JSON privado em `../pingo-front-crm/data/agent-changes.json`
 No frontend, execute `node scripts/check-agent-changes.mjs --worktree` e inclua o JSON no stage. Commit do frontend deve preceder commits relacionados nos demais repositórios. Neles, atualize e inclua `.agent-change.json` com ID novo e SHA completo do commit do frontend que contém o registro. Os hooks leem o registro diretamente desse commit, recusam IDs reutilizados e não mantêm cópias do histórico.
 
 Ative em cada clone: `git config --local core.hooksPath .githooks`. Não contornar a trava. Clone o frontend como irmão ou configure `PINGOFIN_FRONT_ROOT`. Linux usa Node compatível no PATH; Windows pode executar o setup-node.ps1 local.
+
+## Validação no GitHub
+
+O workflow `.github/workflows/validate.yml` executa verificações próprias deste repositório em push para main, pull request e acionamento manual. As Actions ficam fixadas por SHA e não recebem credenciais de produção. A publicação desta etapa é o código no GitHub; hospedagem e DNS serão configurados depois.

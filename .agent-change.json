@@ -1,5 +1,5 @@
 {
-  "changeId": "2026-10-09-migracao-quatro-repositorios",
+  "changeId": "2026-10-09-validacao-publicacao-github",
   "frontRepository": "pingo-front-crm",
-  "frontCommit": "1a166ff4f7b557a1bd8aa8a79f3ab8a733f6e00c"
+  "frontCommit": "c01f206d67554e068bb1ce0e6fbcb5240698dfb3"
 }
