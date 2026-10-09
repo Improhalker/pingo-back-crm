@@ -1,0 +1,33 @@
+name: pingofin-bootstrap
+services:
+  mysql:
+    image: mysql:8.4.11@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
+    ports: ['127.0.0.1:3307:3306']
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Configure .env local}
+      MYSQL_DATABASE: pingofin_dev
+      MYSQL_USER: pingofin
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Configure .env local}
+      TZ: UTC
+    command: ['--default-time-zone=+00:00']
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sh:/docker-entrypoint-initdb.d/01-test-db.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysql -uroot -e "SELECT 1" >/dev/null 2>&1']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  redis:
+    image: redis:8.2.10@sha256:164c759a0c342ee69d08fc99219382b0fd682181465c0df2e0e6911f4c85d73c
+    ports: ['127.0.0.1:6380:6379']
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes: ['redis_data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  mysql_data:
+  redis_data:
