@@ -1,0 +1,28 @@
+# Separate vhost only; do not replace nginx.conf or other projects' sites.
+# Domain approved for the API. Check port availability, then obtain TLS.
+# After certbot configures HTTPS, verify proxy headers also in the TLS vhost.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name api.pingofin.com.br;
+    client_max_body_size 12m;
+
+    # Avoid query strings and request data in access logs.
+    access_log off;
+    error_log /var/log/nginx/pingofin-error.log warn;
+
+    location / {
+        proxy_pass http://127.0.0.1:8088;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        # The host Nginx is the only public proxy in this configuration.
+        # Overwrite incoming forwarded headers instead of trusting client input.
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Host "";
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 35s;
+        proxy_read_timeout 35s;
+    }
+}

@@ -9,14 +9,14 @@ use Illuminate\Support\Str;
 
 class QueueSmoke extends Command
 {
-    protected $signature = 'infra:queue-smoke';
+    protected $signature = 'infra:queue-smoke {--production : Autoriza a checagem técnica em produção sem dados de negócio}';
 
-    protected $description = 'Verifica publicação e processamento assíncrono por um worker Redis real (local/teste).';
+    protected $description = 'Verifica publicação e processamento assíncrono por um worker Redis real (produção exige --production).';
 
     public function handle(): int
     {
-        if (! app()->environment(['local', 'testing'])) {
-            $this->error('Smoke test restrito a desenvolvimento/testes.');
+        if (! app()->environment(['local', 'testing']) && ! (app()->isProduction() && $this->option('production'))) {
+            $this->error('Em produção, use --production explicitamente; outros ambientes exigem local/testing.');
 
             return self::FAILURE;
         }

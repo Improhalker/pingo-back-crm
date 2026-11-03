@@ -1,0 +1,92 @@
+name: pingofin-production
+
+x-runtime: &runtime
+  image: ${PINGOFIN_IMAGE:?Defina PINGOFIN_IMAGE com uma tag de release imutavel}
+  env_file: ${PINGOFIN_ENV_FILE:-.env.production}
+  # Database administration credentials are not needed by API or workers.
+  environment: {MYSQL_ROOT_PASSWORD: ''}
+  restart: unless-stopped
+  init: true
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  stop_grace_period: 90s
+  logging:
+    driver: json-file
+    options: {max-size: '10m', max-file: '3'}
+
+services:
+  api:
+    <<: *runtime
+    command: [web]
+    ports: ['127.0.0.1:${PINGOFIN_HTTP_PORT:-8088}:8080']
+    mem_limit: 512m
+    depends_on:
+      mysql: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    volumes: [private_files:/var/www/html/storage/app]
+
+  worker:
+    <<: *runtime
+    command: [worker]
+    mem_limit: 256m
+    depends_on:
+      mysql: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck: {disable: true}
+    volumes: [private_files:/var/www/html/storage/app]
+
+  # No business schedules currently exist. Start only when explicitly needed.
+  scheduler:
+    <<: *runtime
+    command: [scheduler]
+    profiles: [scheduler]
+    mem_limit: 256m
+    depends_on:
+      mysql: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck: {disable: true}
+    volumes: [private_files:/var/www/html/storage/app]
+
+  mysql:
+    image: mysql:8.4.11@sha256:0f51e63e537a1f176423fa03ef559aabe6fa4372a53160a44bc7e75da7d15364
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:?Defina DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME:?Defina DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD}
+      TZ: UTC
+    command: [--default-time-zone=+00:00, --innodb-buffer-pool-size=256M, --max-connections=50]
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD=$$MYSQL_PASSWORD mysql -h127.0.0.1 -u$$MYSQL_USER -D$$MYSQL_DATABASE -e "SELECT 1" >/dev/null 2>&1']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    logging:
+      driver: json-file
+      options: {max-size: '10m', max-file: '3'}
+
+  redis:
+    image: redis:8.2.10@sha256:e5f23377739f95a2f530b9c99f93accb4f634577f09d00a7d8e0638f2fdf69e0
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Defina REDIS_PASSWORD}
+    command: [sh, -c, 'exec redis-server --appendonly yes --appendfsync everysec --maxmemory 128mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"']
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: json-file
+      options: {max-size: '10m', max-file: '3'}
+
+volumes:
+  mysql_data:
+  redis_data:
+  private_files:

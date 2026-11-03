@@ -56,6 +56,7 @@ jobs:
       - run: composer install --no-interaction --prefer-dist
       - run: composer validate --strict
       - run: composer check-platform-reqs
+      - run: composer audit --locked --no-dev --no-interaction
       - run: php artisan key:generate --env=testing
       - run: vendor/bin/pint --test
       - run: php artisan test
@@ -65,3 +66,15 @@ jobs:
           worker_pid=$!
           trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
           php artisan infra:queue-smoke
+
+  production-image:
+    name: Imagem de producao
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: docker build --pull -t pingofin-api:ci .
+      - run: bash scripts/smoke-production.sh pingofin-api:ci

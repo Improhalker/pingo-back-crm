@@ -16,7 +16,7 @@ Infra local isolada: `docker compose --env-file infra/.env -f infra/compose.yaml
 
 Document root: public/. Instalar dependências pelo composer.lock com --no-dev em produção. Runtime precisa de BCMath, PDO MySQL e extensões do lockfile. Gerenciar .env/APP_KEY no host, APP_ENV=production, APP_DEBUG=false, HTTPS, CORS exato, cookies Secure e domínio coerente com o frontend. Worker Redis e scheduler exigem processos supervisionados. Migrar banco com backup e plano de reversão no deploy.
 
-infra/compose.yaml serve desenvolvimento; PHP-FPM/Nginx ou provider de produção ainda precisam ser definidos. Não há deploy configurado nesta organização. .env/.env.testing e infra/.env são locais e ignorados.
+infra/compose.yaml serve desenvolvimento. A configuração de produção em Docker está em [deploy/README.md](./deploy/README.md): API PHP 8.5, worker e MySQL/Redis próprios em compose.production.yaml, com porta local para o Nginx da VPS. Sua existência não comprova publicação; alvo, recursos, SSH e domínios ainda precisam ser confirmados. .env/.env.testing, .env.production e infra/.env são locais e ignorados.
 
 [Mapa e pendências](../pingo-doc/MIGRACAO_REPOSITORIOS.md). [Arquitetura](../pingo-doc/ARCHITECTURE.md). [Regras dos agentes](./AGENTS.md).
 

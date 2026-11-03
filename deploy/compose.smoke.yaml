@@ -1,0 +1,50 @@
+# Disposable production-image checks. No persistent volumes or real credentials.
+name: pingofin-deploy-smoke
+x-app: &app
+  image: ${PINGOFIN_IMAGE:?Set image}
+  env_file: ${PINGOFIN_SMOKE_ENV:?Set disposable environment path}
+  environment: {MYSQL_ROOT_PASSWORD: ''}
+  init: true
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  stop_grace_period: 90s
+  depends_on:
+    mysql: {condition: service_healthy}
+    redis: {condition: service_healthy}
+services:
+  api:
+    <<: *app
+    command: [web]
+    ports: ['127.0.0.1::8080']
+  worker:
+    <<: *app
+    command: [worker]
+    healthcheck: {disable: true}
+  mysql:
+    image: mysql:8.4.11@sha256:0f51e63e537a1f176423fa03ef559aabe6fa4372a53160a44bc7e75da7d15364
+    environment:
+      MYSQL_DATABASE: pingofin_smoke
+      MYSQL_USER: pingofin
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set disposable password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set disposable root password}
+      TZ: UTC
+    command: [--default-time-zone=+00:00]
+    tmpfs: [/var/lib/mysql]
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD=$$MYSQL_PASSWORD mysql -h127.0.0.1 -u$$MYSQL_USER -D$$MYSQL_DATABASE -e "SELECT 1" >/dev/null 2>&1']
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 15s
+  redis:
+    image: redis:8.2.10@sha256:e5f23377739f95a2f530b9c99f93accb4f634577f09d00a7d8e0638f2fdf69e0
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set disposable password}
+    command: [sh, -c, 'exec redis-server --save "" --appendonly no --requirepass "$$REDIS_PASSWORD"']
+    tmpfs: [/data]
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep -q PONG']
+      interval: 3s
+      timeout: 3s
+      retries: 20
