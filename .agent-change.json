@@ -1,5 +1,5 @@
 {
-  "changeId": "2026-11-03-backend-producao-docker",
+  "changeId": "2026-11-03-compose-wait-worker",
   "frontRepository": "pingo-front-crm",
-  "frontCommit": "e5f697336a677511b2e520aebaca4f737ecb791f"
+  "frontCommit": "60f16ef9f6f654752534447e0226323ba0140caa"
 }

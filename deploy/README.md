@@ -87,7 +87,8 @@ No primeiro deploy, confirmar explicitamente que o destino é o banco **novo e e
 
 ```sh
 docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps api php artisan migrate --force --no-interaction
-docker compose --env-file .env.production -f compose.production.yaml up -d --wait --wait-timeout 180 api worker
+docker compose --env-file .env.production -f compose.production.yaml up -d --wait --wait-timeout 180 api
+docker compose --env-file .env.production -f compose.production.yaml up -d --no-deps worker
 curl --fail --max-time 15 http://127.0.0.1:8088/api/v1/health/live
 curl --fail --max-time 15 http://127.0.0.1:8088/api/v1/health
 ```
@@ -116,7 +117,7 @@ Não aceitar tráfego diretamente na porta do container. Não instalar outro pro
 
 ## Releases seguintes, rollback e backups
 
-Buildar/testar nova tag imutável, revisar migrations, guardar a tag anterior e fazer backup consistente. Atualizar `PINGOFIN_IMAGE` e recriar API/worker juntos (`up -d --wait`). Os processos antigos devem terminar dentro do período de 90s; não confiar somente em `queue:restart` para trocar a imagem.
+Buildar/testar nova tag imutável, revisar migrations, guardar a tag anterior e fazer backup consistente. Atualizar `PINGOFIN_IMAGE`, aguardar a API com `up -d --wait api` e iniciar/recriar worker com `up -d --no-deps worker`. Confirmar consumo da fila antes de aceitar a release. Os processos antigos devem terminar dentro do período de 90s; não confiar somente em `queue:restart` para trocar a imagem.
 
 Antes de downgrade, verificar compatibilidade entre código e schema. Rollback de imagem não reverte o banco, baixas ou operações realizadas. Não executar rollback de migrations automaticamente. Para interrupção, parar somente os serviços do PingoFin que precisarem de manutenção, com janela comunicada.
 

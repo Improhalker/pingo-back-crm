@@ -48,3 +48,7 @@ API aprovada: `api.pingofin.com.br`; aplicativo proposto: `app.pingofin.com.br`,
 O smoke não comprova login completo de navegador entre os domínios públicos, desempenho/carga, restauração de backup, monitoramento/alertas ou operação com clientes reais. Esses itens seguem no procedimento de aceite. Nenhum teste fiscal, integração de IA, alteração de Kanban ou implantação de frontend foi realizado.
 
 Os resultados acima são desta preparação; não foram importados dos relatórios históricos de outubro.
+
+## Acompanhamento do primeiro CI remoto
+
+Após o push da preparação, a [validação da API no GitHub](https://github.com/Improhalker/pingo-back-crm/actions/runs/41699737481) passou, mas o smoke da imagem detectou que o Compose do runner recusava `--wait` para o worker com healthcheck HTTP desabilitado. O script e o guia passaram a aguardar apenas API/MySQL/Redis e iniciar o worker separadamente, confirmando prontidão pelo job técnico real. O smoke local completo foi repetido e passou; a correção é publicada para nova validação remota. Nenhum check foi removido ou convertido em sucesso incondicional.

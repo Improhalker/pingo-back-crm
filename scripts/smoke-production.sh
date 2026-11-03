@@ -60,7 +60,10 @@ done
 "${compose[@]}" config --quiet
 "${compose[@]}" up -d --wait --wait-timeout 180 mysql redis
 "${compose[@]}" run --rm --no-deps api php artisan migrate --force --no-interaction
-"${compose[@]}" up -d --wait --wait-timeout 120 api worker
+"${compose[@]}" up -d --wait --wait-timeout 120 api
+# Some Compose releases reject --wait for a worker whose HTTP healthcheck is disabled.
+# Confirm worker readiness through actual queue consumption below.
+"${compose[@]}" up -d --no-deps worker
 port="$("${compose[@]}" port api 8080)"
 base="http://$port"
 request() {
