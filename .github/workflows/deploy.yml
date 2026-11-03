@@ -1,0 +1,105 @@
+name: Deploy PingoFin
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pingofin-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Validar API e imagem
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/validate.yml
+
+  deploy:
+    name: Deploy production
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.pingofin.com.br/api/v1/health
+    timeout-minutes: 45
+
+    steps:
+      - name: Configurar SSH
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in SSH_PRIVATE_KEY SSH_KNOWN_HOSTS; do
+            if [ -z "${!name:-}" ]; then
+              echo "Secret obrigatório ausente: $name" >&2
+              exit 1
+            fi
+          done
+          umask 077
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/pingofin"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/pingofin" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -P '' -f "$HOME/.ssh/pingofin" > /dev/null
+
+      - name: Publicar na VPS
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for name in SSH_HOST SSH_USER; do
+            if [ -z "${!name:-}" ]; then
+              echo "Secret obrigatório ausente: $name" >&2
+              exit 1
+            fi
+          done
+          SSH_PORT="${SSH_PORT:-22}"
+          if [[ ! "$SSH_PORT" =~ ^[0-9]{1,5}$ ]] || (( 10#$SSH_PORT < 1 || 10#$SSH_PORT > 65535 )); then
+            echo 'Porta SSH inválida.' >&2
+            exit 1
+          fi
+          if [[ ! "$SSH_USER" =~ ^[a-z_][a-z0-9_-]*$ ]] || [[ ! "$SSH_HOST" =~ ^[a-zA-Z0-9._:-]+$ ]]; then
+            echo 'Destino SSH inválido.' >&2
+            exit 1
+          fi
+          if [[ ! "$RELEASE_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo 'SHA de release inválido.' >&2
+            exit 1
+          fi
+          ssh \
+            -i "$HOME/.ssh/pingofin" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=4 \
+            -p "$SSH_PORT" \
+            "$SSH_USER@$SSH_HOST" \
+            "sudo -n /usr/local/libexec/pingofin/deploy release $RELEASE_SHA"
+
+      - name: Verificar API publica
+        shell: bash
+        run: |
+          set -euo pipefail
+          for endpoint in live ''; do
+            url="https://api.pingofin.com.br/api/v1/health${endpoint:+/$endpoint}"
+            curl --fail --silent --show-error --retry 3 --retry-delay 5 \
+              --connect-timeout 5 --max-time 20 "$url" > /dev/null
+          done
+
+      - name: Remover chave temporaria
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/pingofin"

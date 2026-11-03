@@ -30,4 +30,4 @@ Ative em cada clone: `git config --local core.hooksPath .githooks`. Não contorn
 
 ## Validação no GitHub
 
-O workflow `.github/workflows/validate.yml` executa verificações próprias deste repositório em push para main, pull request e acionamento manual. As Actions ficam fixadas por SHA e não recebem credenciais de produção. A publicação desta etapa é o código no GitHub; hospedagem e DNS serão configurados depois.
+O workflow `.github/workflows/deploy.yml` dispara automaticamente em push para main e também pode ser acionado manualmente. Ele chama `.github/workflows/validate.yml` e libera o SSH de produção somente após a API e a imagem Docker passarem. Pull requests mantêm validação sem deploy. Os secrets existentes do ambiente production ficam somente no job de publicação. Veja [CI/CD e operação](./deploy/CI_CD.md).

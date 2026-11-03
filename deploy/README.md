@@ -39,12 +39,12 @@ Se Docker não estiver instalado, inspecionar firewall/iptables e serviços exis
 
 ## 2. Preparar release e segredos
 
-Manter a aplicação em diretório próprio, por exemplo `/opt/pingofin/backend`. Clonar somente `pingo-back-crm` com credencial de leitura apropriada. O repositório de documentação e o JSON privado dos agentes não são dependências de runtime.
+Manter a aplicação em diretório próprio, por exemplo `/var/www/pingofin-back`. Clonar somente `pingo-back-crm` com credencial de leitura apropriada. O repositório de documentação e o JSON privado dos agentes não são dependências de runtime.
 
 Depois de validar o commit e ter a mudança publicada no GitHub:
 
 ```sh
-cd /opt/pingofin/backend
+cd /var/www/pingofin-back
 git status --short
 git rev-parse HEAD
 docker build --pull -t pingofin-api:SEU_SHA_VALIDADO .
@@ -147,8 +147,12 @@ bash scripts/smoke-production.sh pingofin-api:validacao
 
 A suíte PHP exige MySQL `pingofin_test` exclusivo e ambiente de testes. O smoke de produção cria somente o projeto `pingofin-deploy-smoke`, dados sintéticos em tmpfs e portas locais dinâmicas; remove seus containers/rede ao terminar, sem apagar volumes persistentes. Não executar duas instâncias dele simultaneamente. Verifica imagem sem segredos/dependências dev, usuário não root, rejeição de ambiente inseguro, schema descartável, HTTP/CORS/cookies, worker, falha/recuperação Redis e reinício da API. Não é teste fiscal nem evidência de acesso à VPS.
 
-O workflow de validação constrói e testa a imagem; não publica automaticamente ou recebe segredos SSH. Automatizar publicação/ativação será uma etapa posterior, depois de confirmar alvo, acesso, release e DNS.
+O [pipeline automático](./CI_CD.md) agora recebe cada push na main, reutiliza o CI e publica por SSH somente após os testes da API e da imagem passarem. O ambiente production e o wrapper restrito da VPS são reutilizados; os testes não recebem seus secrets. Acionamento manual é opcional.
 
 Fontes oficiais consultadas em 03/11/2026: [deploy Laravel](https://laravel.com/docs/13.x/deployment), [proxies confiáveis](https://laravel.com/docs/13.x/requests#configuring-trusted-proxies), [imagem oficial PHP](https://github.com/docker-library/php/blob/master/8.5/bookworm/apache/Dockerfile), [boas práticas Docker](https://docs.docker.com/build/building/best-practices/). Revalidar digests, advisories e necessidades do servidor em cada atualização.
 
 [Resultados desta preparação](./VALIDATION.md): testes executados, inspeção da VPS e limites reais.
+
+## CI/CD em operação
+
+A configuração atual de publicação é descrita em [CI_CD.md](./CI_CD.md). A API já estava ativa na VPS quando o pipeline foi preparado; as evidências históricas de bootstrap acima não devem ser usadas como status de uma nova execução.
