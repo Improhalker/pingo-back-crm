@@ -31,3 +31,9 @@ Ative em cada clone: `git config --local core.hooksPath .githooks`. Não contorn
 ## Validação no GitHub
 
 O workflow `.github/workflows/deploy.yml` dispara automaticamente em push para main e também pode ser acionado manualmente. Ele chama `.github/workflows/validate.yml` e libera o SSH de produção somente após a API e a imagem Docker passarem. Pull requests mantêm validação sem deploy. Os secrets existentes do ambiente production ficam somente no job de publicação. Veja [CI/CD e operação](./deploy/CI_CD.md).
+
+## Boas-vindas públicas
+
+GET / responde HTML com o Pingo, sem redirecionar para o JSON técnico. Somente essa rota dispensa o grupo web: não cria cookies/sessão nem consulta banco. Não há JavaScript, dados de negócio, versões ou configuração exposta. Assets de marca ficam em public/brand; Pingo e favicon vêm do frontend e Manrope mantém sua licença local.
+
+Os endpoints /api/v1/health/live e /api/v1/health permanecem separados. A página informa presença do serviço, não comprova prontidão de todas as operações. A autenticação e Policies das rotas financeiras não são alteradas.

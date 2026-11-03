@@ -31,6 +31,7 @@ COPY bootstrap/app.php bootstrap/providers.php ./bootstrap/
 COPY config ./config
 COPY database/migrations ./database/migrations
 COPY public ./public
+COPY resources/views ./resources/views
 COPY routes ./routes
 RUN set -eux; \
     mkdir -p bootstrap/cache storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs; \

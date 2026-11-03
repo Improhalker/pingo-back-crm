@@ -71,6 +71,16 @@ request() {
         -H 'Host: api.pingofin.test' -H 'Accept: application/json' \
         -D "$tmp/headers" -o "$tmp/body" -w '%{http_code}' "$@"
 }
+test "$(request "$base/")" = 200
+grep -qi "content-type: text/html" "$tmp/headers"
+grep -q 'id="welcome-title"' "$tmp/body"
+if grep -qi "set-cookie:" "$tmp/headers"; then
+    echo "Welcome page must not create a session" >&2
+    exit 1
+fi
+for asset in api-welcome.css pingo.png manrope-latin.woff2; do
+    test "$(request "$base/brand/$asset")" = 200
+done
 test "$(request "$base/api/v1/health/live")" = 200
 test "$(request "$base/api/v1/health")" = 200
 test "$(request "$base/api/v1/auth/me")" = 401

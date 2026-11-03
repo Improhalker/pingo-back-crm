@@ -1,0 +1,74 @@
+@font-face {
+    font-family: Manrope;
+    src: url('/brand/manrope-latin.woff2') format('woff2');
+    font-style: normal;
+    font-weight: 200 800;
+    font-display: swap;
+}
+
+:root {
+    color-scheme: light;
+    --page: #faf8fc;
+    --ink: #241b2b;
+    --muted: #756a7c;
+    --purple: #5b2a86;
+    --deep-purple: #371653;
+    --yellow: #fbbf24;
+    --line: #e7e0ec;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+.page { width: min(1080px, calc(100% - 96px)); min-height: 100svh; margin-inline: auto; display: flex; flex-direction: column; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 36px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; font-size: 24px; font-weight: 800; letter-spacing: -1px; text-decoration: none; color: var(--deep-purple); }
+.brand img { object-fit: contain; }
+.brand-fin { color: var(--purple); }
+.connection { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 99px; background: #fff; font-size: 11px; font-weight: 700; color: #504657; }
+.connection-dot { width: 6px; height: 6px; border-radius: 50%; background: #2b8051; }
+.welcome { display: grid; grid-template-columns: 1fr 1.12fr; align-items: center; gap: 30px; flex: 1; padding-block: 40px 64px; }
+.eyebrow { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 2.2px; color: var(--purple); }
+h1 { margin: 22px 0 24px; font-size: clamp(46px, 5.2vw, 70px); line-height: 1.07; letter-spacing: -3px; font-weight: 800; }
+h1 span { color: var(--purple); }
+.intro { margin: 0 0 12px; font-size: 19px; line-height: 1.5; font-weight: 700; }
+.description { max-width: 370px; margin: 0; font-size: 15px; line-height: 1.85; color: #65596d; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 28px; margin-top: 30px; padding: 15px 20px; border-radius: 12px; background: var(--purple); color: #fff; font-size: 13px; line-height: 1.5; font-weight: 800; text-decoration: none; }
+.button:hover { background: var(--deep-purple); }
+.button span { font-size: 19px; line-height: 1; }
+a:focus-visible { outline: 3px solid var(--purple); outline-offset: 5px; }
+.note { margin: 14px 0 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
+.character { position: relative; aspect-ratio: 1.1; min-width: 0; display: grid; place-items: center; isolation: isolate; }
+.character-circle { position: absolute; inset: 13% 2% 2% 13%; z-index: -1; border-radius: 50%; background: #eee6f6; }
+.pingo { display: block; width: 100%; height: auto; transform: rotate(-4deg); }
+.hello { position: absolute; top: 9%; right: 2%; display: flex; align-items: center; gap: 18px; padding: 13px 20px; background: var(--yellow); border: 2px solid var(--deep-purple); border-radius: 18px 18px 18px 3px; color: var(--deep-purple); font-size: 25px; font-weight: 800; transform: rotate(9deg); }
+.hello span { font-size: 18px; }
+.spark { position: absolute; color: var(--purple); }
+.spark-one { top: 14%; left: 13%; font-size: 27px; }
+.spark-two { right: 7%; bottom: 9%; font-size: 20px; }
+.footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; border-top: 1px solid var(--line); padding-block: 25px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.footer > span:last-child { font-weight: 700; }
+
+@media (max-width: 720px) {
+    .page { width: calc(100% - 40px); }
+    .header { padding-block: 24px; }
+    .brand { font-size: 21px; }
+    .brand img { width: 29px; height: 29px; }
+    .connection { font-size: 10px; padding: 7px 10px; }
+    .welcome { grid-template-columns: 1fr; gap: 8px; padding-block: 34px 28px; }
+    .copy { max-width: 430px; }
+    h1 { font-size: 54px; letter-spacing: -2.8px; margin-block: 18px 20px; }
+    .intro { font-size: 17px; }
+    .description { max-width: 360px; font-size: 14px; }
+    .button { margin-top: 24px; }
+    .character { width: min(100%, 370px); justify-self: center; }
+    .hello { font-size: 21px; padding: 10px 15px; }
+    .footer { padding-block: 20px; font-size: 10px; }
+}
+
+@media (max-width: 360px) {
+    .page { width: calc(100% - 32px); }
+    .header { gap: 8px; }
+    .connection { gap: 6px; padding-inline: 8px; }
+    h1 { font-size: 48px; }
+}
