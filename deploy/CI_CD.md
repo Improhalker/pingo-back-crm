@@ -51,3 +51,9 @@ Não alterar os sites, PHP-FPM, certificados ou serviços de outros projetos par
 Referência: [workflows reutilizáveis do GitHub](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows).
 
 Ajuste pontual no wrapper existente em 03/11/2026: o preflight passou a usar `PINGOFIN_IMAGE="$NEW_IMAGE" dc run ...`, selecionando a imagem recém-construída no Compose. A versão anterior foi preservada em backup root; `bash -n` passou. Não houve alteração de usuários, chaves, secrets ou sudoers.
+
+## Permissões dos fontes
+
+O checkout da VPS é feito com umask 077. O Dockerfile normaliza leitura/travessia do código na imagem e remove escrita para grupo/outros; configs fora da raiz da aplicação têm modo explícito. Somente storage e bootstrap/cache pertencem ao runtime. O CI constrói a imagem com fontes 600/diretórios 700 e exige que página, assets, API e worker funcionem. Nenhuma permissão de ambiente, backup ou volume de produção é relaxada.
+
+A conexão SSH tem até três tentativas de estabelecimento; isso não reexecuta o comando remoto depois de uma conexão já estabelecida ou de um resultado desconhecido.

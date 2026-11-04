@@ -83,6 +83,7 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=15 \
+            -o ConnectionAttempts=3 \
             -o ServerAliveInterval=15 \
             -o ServerAliveCountMax=4 \
             -p "$SSH_PORT" \

@@ -17,8 +17,8 @@ RUN set -eux; \
     a2enmod rewrite headers; \
     a2dissite 000-default; \
     printf 'Listen 8080\n' > /etc/apache2/ports.conf
-COPY docker/php.ini /usr/local/etc/php/conf.d/zz-pingofin.ini
-COPY docker/apache.conf /etc/apache2/sites-enabled/pingofin.conf
+COPY --chmod=644 docker/php.ini /usr/local/etc/php/conf.d/zz-pingofin.ini
+COPY --chmod=644 docker/apache.conf /etc/apache2/sites-enabled/pingofin.conf
 
 FROM runtime-base AS build
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
@@ -42,8 +42,8 @@ RUN set -eux; \
 FROM runtime-base AS production
 COPY --from=build /var/www/html /var/www/html
 COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/pingofin-entrypoint
-COPY docker/preflight.php /usr/local/lib/pingofin-preflight.php
-RUN chown root:root /var/www/html && chmod 755 /var/www/html \
+COPY --chmod=644 docker/preflight.php /usr/local/lib/pingofin-preflight.php
+RUN chown root:root /var/www/html && chmod -R a+rX,go-w /var/www/html \
     && chown -R www-data:www-data storage bootstrap/cache
 ENV APACHE_RUN_DIR=/tmp/apache2 \
     APACHE_LOCK_DIR=/tmp/apache2-lock \

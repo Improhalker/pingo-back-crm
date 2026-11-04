@@ -75,5 +75,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Reproduzir checkout restrito da VPS
+        run: |
+          find app bootstrap config database public resources routes docker -type d -exec chmod 700 {} +
+          find app bootstrap config database public resources routes docker -type f -exec chmod 600 {} +
       - run: docker build --pull -t pingofin-api:ci .
       - run: bash scripts/smoke-production.sh pingofin-api:ci
