@@ -2,10 +2,9 @@
 
 namespace App\Queries;
 
-use App\Models\Payable;
 use App\Models\Payment;
 use App\Models\Receipt;
-use App\Models\Receivable;
+use App\Support\FinanceFlow;
 use App\Support\Money;
 use App\Support\OrganizationContext;
 use Carbon\CarbonImmutable;
@@ -15,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 /** Read-only cash dashboard. DECIMAL sums, civil days in the company timezone and one InnoDB snapshot. */
 final class DashboardQuery
 {
-    public function __construct(private OrganizationContext $context) {}
+    public function __construct(private OrganizationContext $context, private Installments $installments) {}
 
     public function get(?string $month = null): array
     {
@@ -52,9 +51,16 @@ final class DashboardQuery
                  COALESCE(SUM(CASE WHEN kind = 'PAYABLE' THEN remaining_amount ELSE 0 END), 0) AS payable,
                  COALESCE(SUM(CASE WHEN kind = 'RECEIVABLE' AND due_date < ? THEN remaining_amount ELSE 0 END), 0) AS overdue_receivable,
                  COALESCE(SUM(CASE WHEN kind = 'PAYABLE' AND due_date < ? THEN remaining_amount ELSE 0 END), 0) AS overdue_payable,
+                 COALESCE(SUM(CASE WHEN kind = 'RECEIVABLE' AND due_date >= ? AND due_date < ? THEN remaining_amount ELSE 0 END), 0) AS month_receivable,
+                 COALESCE(SUM(CASE WHEN kind = 'PAYABLE' AND due_date >= ? AND due_date < ? THEN remaining_amount ELSE 0 END), 0) AS month_payable,
                  COUNT(CASE WHEN due_date < ? THEN 1 END) AS overdue_count,
                  COUNT(CASE WHEN due_date >= ? AND due_date <= ? THEN 1 END) AS upcoming_count",
-                [$today, $today, $today, $today, $horizon],
+                [
+                    $today, $today,
+                    $start->toDateString(), $end->toDateString(),
+                    $start->toDateString(), $end->toDateString(),
+                    $today, $today, $horizon,
+                ],
             )->first();
 
             return [
@@ -62,6 +68,10 @@ final class DashboardQuery
                 'as_of' => $now->utc()->format('Y-m-d\TH:i:s.v\Z'),
                 'today' => $today,
                 'monthly' => ['income' => $income, 'expenses' => $expenses, 'result' => Money::sub($income, $expenses)],
+                'due_in_month' => [
+                    'receivable' => Money::normalize((string) $totals->month_receivable),
+                    'payable' => Money::normalize((string) $totals->month_payable),
+                ],
                 'outstanding' => [
                     'receivable' => Money::normalize((string) $totals->receivable),
                     'payable' => Money::normalize((string) $totals->payable),
@@ -97,19 +107,19 @@ final class DashboardQuery
     /** Aggregate each obligation's settlements first: multiple receipts/payments never duplicate principal. */
     private function outstanding(): Builder
     {
-        $receipts = Receipt::owned()->effective()->toBase()->selectRaw('receivable_id, SUM(amount) AS amount')->groupBy('receivable_id');
-        $payments = Payment::owned()->effective()->toBase()->selectRaw('payable_id, SUM(amount) AS amount')->groupBy('payable_id');
-        $receivables = Receivable::owned()->toBase()
+        $receipts = $this->installments->settledPerObligation(FinanceFlow::revenue());
+        $payments = $this->installments->settledPerObligation(FinanceFlow::expense());
+        $receivables = DB::table('receivables')->where('receivables.organization_id', $this->context->organization()->id)
             ->join('revenues', fn ($j) => $j->on('revenues.id', '=', 'receivables.revenue_id')->on('revenues.organization_id', '=', 'receivables.organization_id'))
             ->join('customers', fn ($j) => $j->on('customers.id', '=', 'revenues.customer_id')->on('customers.organization_id', '=', 'revenues.organization_id'))
-            ->leftJoinSub($receipts, 'settled', 'settled.receivable_id', '=', 'receivables.id')
-            ->selectRaw("'RECEIVABLE' AS kind, revenues.id AS source_id, receivables.id AS obligation_id, revenues.description, customers.name AS counterpart, receivables.due_date, GREATEST(receivables.amount - COALESCE(settled.amount, 0), 0) AS remaining_amount");
+            ->leftJoinSub($receipts, 'settled', 'settled.obligation_id', '=', 'receivables.id')
+            ->selectRaw("'RECEIVABLE' AS kind, revenues.id AS source_id, receivables.id AS obligation_id, revenues.description, customers.name AS counterpart, receivables.due_date, GREATEST(receivables.amount - COALESCE(settled.settled_amount, 0), 0) AS remaining_amount");
         $receivables->whereNull('revenues.deleted_at');
-        $payables = Payable::owned()->toBase()
+        $payables = DB::table('payables')->where('payables.organization_id', $this->context->organization()->id)
             ->join('expenses', fn ($j) => $j->on('expenses.id', '=', 'payables.expense_id')->on('expenses.organization_id', '=', 'payables.organization_id'))
             ->join('categories', fn ($j) => $j->on('categories.id', '=', 'expenses.category_id')->on('categories.organization_id', '=', 'expenses.organization_id'))
-            ->leftJoinSub($payments, 'settled', 'settled.payable_id', '=', 'payables.id')
-            ->selectRaw("'PAYABLE' AS kind, expenses.id AS source_id, payables.id AS obligation_id, expenses.description, categories.name AS counterpart, payables.due_date, GREATEST(payables.amount - COALESCE(settled.amount, 0), 0) AS remaining_amount");
+            ->leftJoinSub($payments, 'settled', 'settled.obligation_id', '=', 'payables.id')
+            ->selectRaw("'PAYABLE' AS kind, expenses.id AS source_id, payables.id AS obligation_id, expenses.description, categories.name AS counterpart, payables.due_date, GREATEST(payables.amount - COALESCE(settled.settled_amount, 0), 0) AS remaining_amount");
 
         $payables->whereNull('expenses.deleted_at');
 

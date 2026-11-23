@@ -78,6 +78,9 @@ final class ChangeFinancialEntry
                     $entry->customer_id = $data['customer_id'];
                     $entry->sale_date = $data['sale_date'];
                 }
+                if ($entry->financial_recurrence_id && Money::compare((string) $entry->total_amount, $data['total_amount']) !== 0) {
+                    $entry->recurrence_amount_overridden = true;
+                }
                 $entry->forceFill([
                     'description' => $data['description'], 'category_id' => $data['category_id'],
                     'total_amount' => $data['total_amount'], 'notes' => $data['notes'], 'version' => $entry->version + 1,

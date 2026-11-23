@@ -180,6 +180,40 @@ class DashboardTest extends TestCase
         $this->as($this->adminA, $this->orgA)->getJson('/api/v1/dashboard')->assertForbidden()->assertJsonPath('code', 'ORGANIZATION_SUSPENDED');
     }
 
+    public function test_monthly_open_due_matches_forecast_and_keeps_totals_and_cash_separate(): void
+    {
+        CarbonImmutable::setTestNow('2026-11-23T12:00:00Z');
+        $schedule = collect(['2026-12-31', '2027-01-01', '2027-02-01', '2027-03-01', '2027-04-01', '2027-05-01'])
+            ->map(fn ($date, $i) => ['amount' => $i === 5 ? '101.67' : '101.66', 'due_date' => $date, 'expected_method' => 'PIX'])->all();
+        $installments = $this->expense(['total_amount' => '609.97', 'due_date' => null, 'expected_method' => null, 'installments' => $schedule]);
+        $partial = $this->expense(['total_amount' => '500.00', 'due_date' => '2026-12-01']);
+        $this->movement('payments', $partial, '18.18', '2026-11-22 12:00:00');
+        $settled = $this->expense(['total_amount' => '40.00', 'due_date' => '2026-12-01']);
+        $this->movement('payments', $settled, '40.00', '2026-11-22 13:00:00');
+        $deleted = $this->expense(['total_amount' => '50.00', 'due_date' => '2026-12-01']);
+        DB::table('expenses')->where('id', $deleted['id'])->update(['deleted_at' => now()]);
+        $sale = $this->sale(['due_date' => '2026-11-03']);
+        $this->movement('receipts', $sale, '50.00', '2026-11-22 14:00:00');
+        $this->assertCount(6, $installments['installments']);
+
+        $api = $this->as($this->adminA, $this->orgA);
+        foreach (['2026-11' => '0.00', '2026-12' => '583.48', '2027-01' => '101.66'] as $month => $expected) {
+            $api->getJson('/api/v1/dashboard?month='.$month)->assertOk()
+                ->assertJsonPath('data.due_in_month.payable', $expected)
+                ->assertJsonPath('data.outstanding.payable', '1091.79')
+                ->assertJsonPath('data.outstanding.overdue_payable', '0.00');
+        }
+        $api->getJson('/api/v1/dashboard?month=2026-11')->assertOk()
+            ->assertJsonPath('data.due_in_month.receivable', '950.00')
+            ->assertJsonPath('data.outstanding.overdue_receivable', '950.00')
+            ->assertJsonPath('data.monthly.expenses', '58.18');
+        $api->getJson('/api/v1/reports/obligations?type=payable&due_from=2026-12-01&due_to=2026-12-31')->assertOk()
+            ->assertJsonPath('summary.payable', '583.48')->assertJsonCount(2, 'data');
+
+        $this->as($this->adminB, $this->orgB)->getJson('/api/v1/dashboard?month=2026-12')->assertOk()
+            ->assertJsonPath('data.due_in_month', ['receivable' => '0.00', 'payable' => '0.00']);
+    }
+
     public function test_empty_dashboard_and_month_validation(): void
     {
         $api = $this->as($this->operatorA, $this->orgA);

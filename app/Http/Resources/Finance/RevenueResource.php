@@ -26,6 +26,10 @@ class RevenueResource extends JsonResource
         return [
             'id' => (string) $this->id,
             'version' => (int) $this->version,
+            'recurrence' => $this->financial_recurrence_id ? [
+                'id' => (string) $this->financial_recurrence_id,
+                'month' => substr((string) $this->recurrence_month, 0, 7),
+            ] : null,
             'description' => $this->description,
             'customer' => ['id' => (string) $this->customer_id, 'name' => $this->customer_name, 'archived' => $this->customer_archived_at !== null],
             'category' => ['id' => (string) $this->category_id, 'name' => $this->category_name, 'archived' => $this->category_archived_at !== null],

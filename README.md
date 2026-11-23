@@ -37,3 +37,15 @@ O workflow `.github/workflows/deploy.yml` dispara automaticamente em push para m
 GET / responde HTML com o Pingo, sem redirecionar para o JSON técnico. Somente essa rota dispensa o grupo web: não cria cookies/sessão nem consulta banco. Não há JavaScript, dados de negócio, versões ou configuração exposta. Assets de marca ficam em public/brand; Pingo e favicon vêm do frontend e Manrope mantém sua licença local.
 
 Os endpoints /api/v1/health/live e /api/v1/health permanecem separados. A página informa presença do serviço, não comprova prontidão de todas as operações. A autenticação e Policies das rotas financeiras não são alteradas.
+
+## Vencimentos e séries mensais
+
+O dashboard mantém movimentações de caixa por data de baixa. `due_in_month` soma apenas o que resta das parcelas com vencimento no mês selecionado, tanto a receber como a pagar. O total em aberto e o total em atraso consideram todos os meses. O detalhamento usa os mesmos filtros de vencimento do relatório `/api/v1/reports/obligations`.
+
+Crie uma série pelo modo **Recorrente mensal** dos formulários de receita e despesa. A série usa categoria ativa e, para receita, um cliente existente como fonte pagadora. A baixa de cada ocorrência é manual, inclusive para receitas avulsas em que o valor muda. No menor mês, o vencimento cai no último dia e a série volta ao dia escolhido no mês seguinte. O lembrete interno é opcional e usa de zero a trinta dias de antecedência.
+
+A geração mantém o mês atual e o próximo no fuso da empresa. Se o scheduler parar, a série ativa retoma as competências ainda não geradas. Pausar ou encerrar preserva todas as ocorrências já criadas. Ao retomar uma série pausada, a geração recomeça no mês atual, preservando o intervalo passado da pausa. Uma ocorrência excluída individualmente mantém seu vínculo e não volta a ser gerada.
+
+O reajuste mantém a série e começa em uma competência futura escolhida. Atualiza as ocorrências futuras já geradas se não tiverem baixa ou ajuste pontual de valor. As baixas, os valores de competências anteriores e os registros de auditoria são preservados. Para uma exceção, edite o lançamento individual. Categoria ou fonte pagadora arquivada bloqueia novas gerações desta série até regularizar o cadastro.
+
+Na implantação, publique e migre o backend antes do frontend. O comando `php artisan finance:generate-recurrences` é idempotente e está cadastrado para execução de hora em hora no scheduler Laravel. Rode o scheduler do PingoFin junto à API, usando a mesma imagem, após validar a migration. Na VPS, o serviço `scheduler` do Compose é opcional e precisa ser ativado e atualizado no rollout. Confira `schedule:list` e acompanhe erros de geração nas primeiras execuções.

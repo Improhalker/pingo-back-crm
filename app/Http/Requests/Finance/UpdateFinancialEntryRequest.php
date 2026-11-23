@@ -12,11 +12,17 @@ use Illuminate\Validation\Rule;
 /** Complete correction of the entry, never a correction of its settlements. */
 class UpdateFinancialEntryRequest extends FinanceRequest
 {
+    private ?string $originalRecurringSale = null;
+
     public function authorize(): bool
     {
         $revenue = $this->route('revenue') !== null;
         $class = $revenue ? Revenue::class : Expense::class;
-        Gate::authorize('update', $class::owned()->findOrFail($this->route($revenue ? 'revenue' : 'expense')));
+        $entry = $class::owned()->findOrFail($this->route($revenue ? 'revenue' : 'expense'));
+        Gate::authorize('update', $entry);
+        if ($revenue && $entry->financial_recurrence_id) {
+            $this->originalRecurringSale = $entry->sale_date->toDateString();
+        }
 
         return true;
     }
@@ -24,6 +30,8 @@ class UpdateFinancialEntryRequest extends FinanceRequest
     public function rules(): array
     {
         $revenue = $this->route('revenue') !== null;
+        $today = CarbonImmutable::now($this->organizationTimezone())->toDateString();
+        $saleLimit = max($today, $this->originalRecurringSale ?? $today);
 
         return [
             ...$this->serverOwned(),
@@ -35,7 +43,7 @@ class UpdateFinancialEntryRequest extends FinanceRequest
             'total_amount' => $this->money(),
             'category_id' => ['required', 'integer', 'min:1'],
             'customer_id' => $revenue ? ['required', 'integer', 'min:1'] : ['prohibited'],
-            'sale_date' => $revenue ? ['required', 'date_format:Y-m-d', 'after_or_equal:2000-01-01', 'before_or_equal:'.CarbonImmutable::now($this->organizationTimezone())->toDateString()] : ['prohibited'],
+            'sale_date' => $revenue ? ['required', 'date_format:Y-m-d', 'after_or_equal:2000-01-01', 'before_or_equal:'.$saleLimit] : ['prohibited'],
             'due_date' => ['required', 'date_format:Y-m-d', $revenue ? 'after_or_equal:sale_date' : 'after_or_equal:2000-01-01', 'before_or_equal:2100-12-31'],
             'expected_method' => ['required', Rule::in(Receivable::METHODS)],
             'notes' => ['nullable', 'string', 'max:2000'],

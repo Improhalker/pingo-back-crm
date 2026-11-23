@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Finance\CategoryController;
 use App\Http\Controllers\Api\V1\Finance\CustomerController;
 use App\Http\Controllers\Api\V1\Finance\DashboardController;
 use App\Http\Controllers\Api\V1\Finance\ExpenseController;
+use App\Http\Controllers\Api\V1\Finance\FinancialRecurrenceController;
 use App\Http\Controllers\Api\V1\Finance\ReminderController;
 use App\Http\Controllers\Api\V1\Finance\ReportController;
 use App\Http\Controllers\Api\V1\Finance\RevenueController;
@@ -59,6 +60,10 @@ Route::middleware(['auth:sanctum', 'organization'])->group(function () {
     Route::get('expenses/{expense}', [ExpenseController::class, 'show'])->whereNumber('expense');
     Route::post('payables/{payable}/payments', [ExpenseController::class, 'storePayment'])->whereNumber('payable');
     Route::post('payments/{payment}/corrections', [ExpenseController::class, 'correctPayment'])->whereNumber('payment');
+    Route::get('recurrences', [FinancialRecurrenceController::class, 'index']);
+    Route::post('recurrences', [FinancialRecurrenceController::class, 'store']);
+    Route::get('recurrences/{recurrence}', [FinancialRecurrenceController::class, 'show'])->whereNumber('recurrence');
+    Route::patch('recurrences/{recurrence}', [FinancialRecurrenceController::class, 'update'])->whereNumber('recurrence');
     Route::get('reminders', ReminderController::class);
     Route::get('reports/monthly', [ReportController::class, 'monthly']);
     Route::get('reports/statement', [ReportController::class, 'statement']);
