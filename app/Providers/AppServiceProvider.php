@@ -33,9 +33,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('platform-write', fn (Request $request) => Limit::perMinute(30)->by($request->user()?->id.'|'.$request->ip()));
         RateLimiter::for('platform-provision', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id.'|'.$request->ip()));
         RateLimiter::for('login', function (Request $request) {
+            $email = strtolower(trim((string) $request->input('email')));
+
             return [
-                Limit::perMinute(20)->by($request->ip()),
-                Limit::perMinute(5)->by(hash('sha256', strtolower((string) $request->input('email')).'|'.$request->ip())),
+                Limit::perMinute(20)->by('ip|'.$request->ip()),
+                Limit::perMinute(5)->by('email-ip|'.hash('sha256', $email.'|'.$request->ip())),
+                // Per account, whatever the address: rotating IPs cannot keep guessing one password.
+                // Short window, so an attacker can delay but not lock the owner out for long.
+                Limit::perMinute(10)->by('email|'.hash('sha256', $email)),
             ];
         });
     }

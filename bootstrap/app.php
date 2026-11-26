@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsurePlatformAdministrator;
 use App\Http\Middleware\RequestId;
 use App\Http\Middleware\ResolveOrganization;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
         $middleware->statefulApi();
         $middleware->append(RequestId::class);
+        $middleware->append(SecurityHeaders::class);
         $middleware->alias(['organization' => ResolveOrganization::class, 'platform' => EnsurePlatformAdministrator::class]);
         // Platform authorization runs before route model binding, so non-masters cannot probe which company IDs exist.
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: EnsurePlatformAdministrator::class);
